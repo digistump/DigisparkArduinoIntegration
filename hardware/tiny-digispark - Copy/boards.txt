@@ -1,0 +1,6 @@
+digispark-tiny.name=Digispark (Tiny Core)
+digispark-tiny.upload.maximum_size=6010
+digispark-tiny.build.mcu=digispark
+digispark-tiny.build.f_cpu=16500000L
+digispark-tiny.build.core=tiny
+digispark-tiny.upload.using=digispark

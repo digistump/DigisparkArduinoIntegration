@@ -1,0 +1,7 @@
+digispark-mit.name=Digispark (MIT High-Low Method)
+digispark-mit.upload.maximum_size=6041
+digispark-mit.build.mcu=attiny85
+digispark-mit.upload.using=digispark
+digispark-mit.build.f_cpu=16500000L
+digispark-mit.build.core=arduino:arduino
+digispark-mit.build.variant=tiny8
