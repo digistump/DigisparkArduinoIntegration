@@ -108,23 +108,6 @@ int DigiUSBDevice::read() {
   }
 }
 
-int DigiUSBDevice::readln() {
-  /*
-   */
-  // if the head isn't ahead of the tail, we don't have any characters
-  while (c != "\n"){
-    if ((RING_BUFFER_SIZE + _rx_buffer->head - _rx_buffer->tail) % RING_BUFFER_SIZE > 0){
-      if (_rx_buffer->head == _rx_buffer->tail) {
-        return -1;
-      } else {
-        unsigned char c = _rx_buffer->buffer[_rx_buffer->tail];
-        _rx_buffer->tail = (_rx_buffer->tail + 1) % RING_BUFFER_SIZE;
-        return c;
-      }
-    }
-  }
-}
-
 size_t DigiUSBDevice::write(byte c) {
   /*
    */

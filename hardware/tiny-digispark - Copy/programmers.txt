@@ -1,3 +1,0 @@
-digispark.name=Digispark
-digispark.communication=usb
-digispark.protocol=digispark
