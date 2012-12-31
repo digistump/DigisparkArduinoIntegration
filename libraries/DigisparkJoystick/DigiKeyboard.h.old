@@ -162,7 +162,6 @@ class DigiKeyboardDevice {
       //       so we know the previous keystroke was
       //       sent.
     usbPoll();
-    _delay_ms(5);
     }
       
     memset(reportBuffer, 0, sizeof(reportBuffer));
@@ -177,7 +176,6 @@ class DigiKeyboardDevice {
       //       so we know the previous keystroke was
       //       sent.
     usbPoll();
-    _delay_ms(5);
     }
       
     // This stops endlessly repeating keystrokes:
