@@ -1,0 +1,13 @@
+
+/libraries/Wire
+/libraries/EEPROM
+/libraries/Esplora
+/libraries/Ethernet
+/libraries/Firmata
+/libraries/LiquidCrystal
+/libraries/SD
+/libraries/Servo
+/libraries/SoftwareSerial
+/libraries/SPI
+/libraries/Stepper
+/libraries/WiFi
