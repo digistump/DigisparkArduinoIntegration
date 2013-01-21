@@ -46,6 +46,8 @@ class DigiUSBDevice : public Print {
   void refresh();
 
   int available();
+  int tx_remaining();
+  
   int read();
   virtual size_t write(byte c);
   using Print::write;

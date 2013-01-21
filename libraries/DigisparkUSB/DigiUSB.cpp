@@ -94,6 +94,10 @@ int DigiUSBDevice::available() {
    */
   return (RING_BUFFER_SIZE + _rx_buffer->head - _rx_buffer->tail) % RING_BUFFER_SIZE;
 }
+
+int DigiUSBDevice::tx_remaining() {
+  return RING_BUFFER_SIZE - (RING_BUFFER_SIZE + _tx_buffer->head - _tx_buffer->tail) % RING_BUFFER_SIZE;
+}
   
 int DigiUSBDevice::read() {
   /*
