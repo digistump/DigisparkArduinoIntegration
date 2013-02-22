@@ -4,3 +4,45 @@ digispark-tiny.build.mcu=attiny85
 digispark-tiny.build.f_cpu=16500000L
 digispark-tiny.build.core=tiny
 digispark-tiny.upload.using=digispark
+digispark-tiny.bootloader.low_fuses=0xf1
+digispark-tiny.bootloader.high_fuses=0x5f
+digispark-tiny.bootloader.extended_fuses=0xfe
+digispark-tiny.bootloader.path=micronucleus
+digispark-tiny.bootloader.file=micronucleus-1.05-upgrade.hex
+
+digispark-tiny16mhz.name=Digispark 16.0mhz - NO USB (Tiny Core)
+digispark-tiny16mhz.upload.maximum_size=6010
+digispark-tiny16mhz.build.mcu=attiny85
+digispark-tiny16mhz.build.f_cpu=16000000L
+digispark-tiny16mhz.build.core=tiny
+digispark-tiny16mhz.upload.using=digispark
+digispark-tiny16mhz.bootloader.low_fuses=0xf1
+digispark-tiny16mhz.bootloader.high_fuses=0x5f
+digispark-tiny16mhz.bootloader.extended_fuses=0xfe
+digispark-tiny16mhz.bootloader.path=micronucleus
+digispark-tiny16mhz.bootloader.file=micronucleus-1.05-upgrade.hex
+
+digispark-tiny8mhz.name=Digispark 8mhz - NO USB (Tiny Core)
+digispark-tiny8mhz.upload.maximum_size=6010
+digispark-tiny8mhz.build.mcu=attiny85
+digispark-tiny8mhz.build.f_cpu=8000000L
+digispark-tiny8mhz.build.core=tiny
+digispark-tiny8mhz.upload.using=digispark
+digispark-tiny8mhz.bootloader.low_fuses=0xf1
+digispark-tiny8mhz.bootloader.high_fuses=0x5f
+digispark-tiny8mhz.bootloader.extended_fuses=0xfe
+digispark-tiny8mhz.bootloader.path=micronucleus
+digispark-tiny8mhz.bootloader.file=micronucleus-1.05-upgrade.hex
+
+digispark-tiny1mhz.name=Digispark 1mhz - NO USB (Tiny Core)
+digispark-tiny1mhz.upload.maximum_size=6010
+digispark-tiny1mhz.build.mcu=attiny85
+digispark-tiny1mhz.build.f_cpu=1000000L
+digispark-tiny1mhz.build.core=tiny
+digispark-tiny1mhz.upload.using=digispark
+digispark-tiny1mhz.bootloader.low_fuses=0xf1
+digispark-tiny1mhz.bootloader.high_fuses=0x5f
+digispark-tiny1mhz.bootloader.extended_fuses=0xfe
+digispark-tiny1mhz.bootloader.path=micronucleus
+digispark-tiny1mhz.bootloader.file=micronucleus-1.05-upgrade.hex
+
