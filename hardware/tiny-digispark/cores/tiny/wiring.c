@@ -31,6 +31,9 @@
 #include "core_timers.h"
 #include "wiring_private.h"
 #include "ToneTimer.h"
+#if F_CPU != 16500000L
+  #include <avr/boot.h>
+#endif
 
 #define millistimer_(t)                           TIMER_PASTE_A( timer, TIMER_TO_USE_FOR_MILLIS, t )
 #define MillisTimer_(f)                           TIMER_PASTE_A( Timer, TIMER_TO_USE_FOR_MILLIS, f )
@@ -228,8 +231,55 @@ void initToneTimer(void)
   #endif
 }
 
+#if F_CPU != 16500000L
+  // used to detect bootloader applying calibration in init
+  byte read_factory_calibration(void)
+  {
+    byte SIGRD = 5; // for some reason this isn't defined...
+    byte value = boot_signature_byte_get(1);
+    return value;
+  }
+#endif
+
 void init(void)
 {
+  // clock calibration stuff
+  // recalibrate clock if it was calibrated by bootloader (like micronucleus)
+  #if F_CPU != 16500000L
+    if (OSCCAL != read_factory_calibration()) {
+      // adjust the calibration down from 16.5mhz to 16.0mhz
+      if (OSCCAL >= 128) {
+        // maybe 8 is better? oh well - only about 0.3% out anyway
+        OSCCAL -= 7;
+      } else {
+        OSCCAL -= 5;
+      }
+    }
+  #endif
+    
+  // TODO: detect if fuses set to PLL, regular internal oscillator or external and change behaviour in this next section...
+  #if F_CPU < 16000000L
+    cli();
+    CLKPR = 0b10000000;
+    #if F_CPU == 8000000L
+      CLKPR = 1; // div 2
+    #elseif F_CPU == 4000000L
+      CLKPR = 2 // div 4
+    #elseif F_CPU == 2000000L
+      CLKPR = 3; // div 8
+    #elseif F_CPU == 1000000L
+      CLKPR = 4; // div 16
+    #elseif F_CPU == 500000L
+      CLKPR = 5; // div 32 = 500khz
+    #elseif F_CPU == 250000L
+      CLKPR = 6; // div 64 = 250khz
+    #elseif F_CPU == 125000L
+      CLKPR = 7; // div 128 = 125khz cpu clock
+    #else
+      #warning "Cannot prescale chip to specified F_CPU speed"
+    #endif
+  #endif
+  
   // this needs to be called before setup() or some functions won't work there
   sei();
 
