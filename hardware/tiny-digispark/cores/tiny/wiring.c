@@ -125,6 +125,11 @@ unsigned long millis()
   return m;
 }
 
+// (unsigned long) internalMicrosProvider = NULL;
+// void registerMicrosProvider((unsigned long)function*(void)) {
+//   
+// }
+
 unsigned long micros() 
 {
   unsigned long m;
@@ -263,17 +268,17 @@ void init(void)
     CLKPR = 0b10000000;
     #if F_CPU == 8000000L
       CLKPR = 1; // div 2
-    #elseif F_CPU == 4000000L
+    #elif F_CPU == 4000000L
       CLKPR = 2 // div 4
-    #elseif F_CPU == 2000000L
+    #elif F_CPU == 2000000L
       CLKPR = 3; // div 8
-    #elseif F_CPU == 1000000L
+    #elif F_CPU == 1000000L
       CLKPR = 4; // div 16
-    #elseif F_CPU == 500000L
+    #elif F_CPU == 500000L
       CLKPR = 5; // div 32 = 500khz
-    #elseif F_CPU == 250000L
+    #elif F_CPU == 250000L
       CLKPR = 6; // div 64 = 250khz
-    #elseif F_CPU == 125000L
+    #elif F_CPU == 125000L
       CLKPR = 7; // div 128 = 125khz cpu clock
     #else
       #warning "Cannot prescale chip to specified F_CPU speed"
