@@ -155,27 +155,93 @@ void delay(unsigned long ms)
   }
 }
 
-// special optimised delay loops for attiny85 by bluebie
-#if F_CPU == 16500000
-	// special version to deal with half-mhz speed. in a resolution of 2us increments, rounded up
-	// this loop has been tuned empirically with an oscilloscope and works in avr-gcc 4.5.1
-	void delayMicroseconds(unsigned int microseconds)
-	{
-    microseconds &= ((unsigned int) 0) - ((unsigned int) 2); // remove least signifficant bit
-		while (microseconds > 1) {
-			// 16 nops
-			asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");
-			asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");
-			// 16 nops
-			asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");
-			asm("NOP");asm("NOP");asm("NOP");
-		
-		
-			microseconds -= 2;
-		}
-	}
+#if F_CPU == 16500000L
+  // optimised delay loop from Bluebie contributed to Digispark project
+  // deals accurately with half-mhz clock speed, but can only delay in increments of 2us rounded down
+  // this loop has been tuned empirically with an oscilloscope and works in avr-gcc 4.5.1
+  void delayMicroseconds(unsigned int us){
+    us &= ((unsigned int) 0) - ((unsigned int) 2); // remove least signifficant bit
+  	while (us > 1) {
+  		// 16 nops
+  		asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");
+  		asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");
+  		// 11 nops
+  		asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");
+  		asm("NOP");asm("NOP");asm("NOP");
+    
+  		us -= 2;
+  	}
+  }
 #else
-	#define delayMicroseconds(microseconds) _delay_loop_2((((unsigned int)microseconds) * (F_CPU / 100000)) / 40)
+  /* Improved delayMicroseconds function
+   * Copyright (c) 2011, Paul Stoffregen, paul at pjrc dot com
+   * 
+   * Permission is hereby granted, free of charge, to any person obtaining a copy
+   * of this software and associated documentation files (the "Software"), to deal
+   * in the Software without restriction, including without limitation the rights
+   * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+   * copies of the Software, and to permit persons to whom the Software is
+   * furnished to do so, subject to the following conditions:
+   * 
+   * The above copyright notice and this permission notice shall be included in
+   * all copies or substantial portions of the Software.
+   * 
+   * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+   * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+   * THE SOFTWARE.
+   */
+
+  // modified by Bluebie in 2013 for Digispark project
+  // #include <stdint.h>
+  // #include <avr/io.h>
+  
+  void delayMicroseconds(uint16_t usec) {
+		asm volatile(
+		#if F_CPU == 16000000L
+			"sbiw	%A0, 2"			"\n\t"	// 2
+			"brcs	L_%=_end"		"\n\t"	// 1
+			"breq	L_%=_end"		"\n\t"	// 1
+			"lsl	%A0"			"\n\t"	// 1
+			"rol	%B0"			"\n\t"	// 1
+			"lsl	%A0"			"\n\t"	// 1
+			"rol	%B0"			"\n\t"	// 1  overhead: (8)/4 = 2us
+		#elif F_CPU == 8000000L
+			"sbiw	%A0, 3"			"\n\t"	// 2
+			"brcs	L_%=_end"		"\n\t"	// 1
+			"breq	L_%=_end"		"\n\t"	// 1
+			"lsl	%A0"			"\n\t"	// 1
+			"rol	%B0"			"\n\t"	// 1  overhead: (6)/2 = 3 us
+		#elif F_CPU == 4000000L
+			"sbiw	%A0, 4"			"\n\t"	// 2
+			"brcs	L_%=_end"		"\n\t"	// 1
+			"breq	L_%=_end"		"\n\t"	// 1  overhead: (4) = 4 us
+		#elif F_CPU == 2000000L
+			"sbiw	%A0, 12"		"\n\t"	// 2
+			"brcs	L_%=_end"		"\n\t"	// 1
+			"breq	L_%=_end"		"\n\t"	// 1
+			"lsr	%B0"			"\n\t"	// 1
+			"ror	%A0"			"\n\t"	// 1  overhead: (6)*2 = 12 us
+		#elif F_CPU == 1000000L
+			"sbiw	%A0, 32"		"\n\t"	// 2
+			"brcs	L_%=_end"		"\n\t"	// 1
+			"breq	L_%=_end"		"\n\t"	// 1
+			"lsr	%B0"			"\n\t"	// 1
+			"ror	%A0"			"\n\t"	// 1
+			"lsr	%B0"			"\n\t"	// 1
+			"ror	%A0"			"\n\t"	// 1  overhead: (8)*4 = 32 us
+		#endif
+		"L_%=_loop:"
+			"sbiw	%A0, 1"			"\n\t"	// 2
+			"brne	L_%=_loop"		"\n\t"	// 2
+		"L_%=_end:"
+			: "+w" (usec)
+			: "0" (usec)
+		);
+  }
 #endif
 
 static void initToneTimerInternal(void)
