@@ -8,7 +8,7 @@ digispark-tiny.bootloader.low_fuses=0xf1
 digispark-tiny.bootloader.high_fuses=0x5f
 digispark-tiny.bootloader.extended_fuses=0xfe
 digispark-tiny.bootloader.path=micronucleus
-digispark-tiny.bootloader.file=micronucleus-1.05-upgrade.hex
+digispark-tiny.bootloader.file=micronucleus-1.06-upgrade.hex
 
 digispark-tiny16mhz.name=Digispark 16.0mhz - NO USB (Tiny Core)
 digispark-tiny16mhz.upload.maximum_size=6012
@@ -20,7 +20,7 @@ digispark-tiny16mhz.bootloader.low_fuses=0xf1
 digispark-tiny16mhz.bootloader.high_fuses=0x5f
 digispark-tiny16mhz.bootloader.extended_fuses=0xfe
 digispark-tiny16mhz.bootloader.path=micronucleus
-digispark-tiny16mhz.bootloader.file=micronucleus-1.05-upgrade.hex
+digispark-tiny16mhz.bootloader.file=micronucleus-1.06-upgrade.hex
 
 digispark-tiny8mhz.name=Digispark 8mhz - NO USB (Tiny Core)
 digispark-tiny8mhz.upload.maximum_size=6012
@@ -32,7 +32,7 @@ digispark-tiny8mhz.bootloader.low_fuses=0xf1
 digispark-tiny8mhz.bootloader.high_fuses=0x5f
 digispark-tiny8mhz.bootloader.extended_fuses=0xfe
 digispark-tiny8mhz.bootloader.path=micronucleus
-digispark-tiny8mhz.bootloader.file=micronucleus-1.05-upgrade.hex
+digispark-tiny8mhz.bootloader.file=micronucleus-1.06-upgrade.hex
 
 digispark-tiny1mhz.name=Digispark 1mhz - NO USB (Tiny Core)
 digispark-tiny1mhz.upload.maximum_size=6012
@@ -44,5 +44,5 @@ digispark-tiny1mhz.bootloader.low_fuses=0xf1
 digispark-tiny1mhz.bootloader.high_fuses=0x5f
 digispark-tiny1mhz.bootloader.extended_fuses=0xfe
 digispark-tiny1mhz.bootloader.path=micronucleus
-digispark-tiny1mhz.bootloader.file=micronucleus-1.05-upgrade.hex
+digispark-tiny1mhz.bootloader.file=micronucleus-1.06-upgrade.hex
 
