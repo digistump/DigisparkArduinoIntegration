@@ -193,51 +193,51 @@ class DigiJoystickDevice {
 	  }
 	}
 	
-	void setX(unsigned char value) {
+	void setX(byte value) {
 		last_built_report[0] = value;
 	}
 	
-	void setY(unsigned char value) {
+	void setY(byte value) {
 		last_built_report[1] = value;
 	}
 	
-	void setXROT(unsigned char value) {
+	void setXROT(byte value) {
 		last_built_report[2] = value;
 	}
 	
-	void setYROT(unsigned char value) {
+	void setYROT(byte value) {
 		last_built_report[3] = value;
 	}
 	
-	void setZROT(unsigned char value) {
+	void setZROT(byte value) {
 		last_built_report[4] = value;
 	}
 	
-	void setSLIDER(unsigned char value) {
+	void setSLIDER(byte value) {
 		last_built_report[5] = value;
 	}
 	
 	void setX(char value) {
-		setX(*(reinterpret_cast<unsigned char *>(&value)));
+		setX(*(reinterpret_cast<byte *>(&value)));
 	}
 	
 	void setY(char value) {
-		setY(*(reinterpret_cast<unsigned char *>(&value)));
+		setY(*(reinterpret_cast<byte *>(&value)));
 	}
 	
 	void setXROT(char value) {
-		setXROT(*(reinterpret_cast<unsigned char *>(&value)));
+		setXROT(*(reinterpret_cast<byte *>(&value)));
 	}
 	
 	void setYROT(char value) {
-		setYROT(*(reinterpret_cast<unsigned char *>(&value)));
+		setYROT(*(reinterpret_cast<byte *>(&value)));
 	}
 	
 	void setZROT(char value) {
-		setZROT(*(reinterpret_cast<unsigned char *>(&value)));
+		setZROT(*(reinterpret_cast<byte *>(&value)));
 	}
 	void setSLIDER(char value) {
-		setSLIDER(*(reinterpret_cast<unsigned char *>(&value)));
+		setSLIDER(*(reinterpret_cast<byte *>(&value)));
 	}
 	
 	void setButtons(unsigned char low, unsigned char high) {
