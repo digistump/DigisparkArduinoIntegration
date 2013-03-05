@@ -45,8 +45,12 @@ unsigned char last_sent_report[REPORT_SIZE];
 uchar    reportBuffer[REPORT_SIZE];
 
 char must_report = 0;
-unsigned char    idleRate;           // in 4 ms units 
-unsigned char idleCounter = 0;
+// unsigned char    idleRate;           // in 4 ms units 
+// unsigned char idleCounter = 0;
+// new minimum report frequency system:
+unsigned long lastReportTime = 0;
+// report frequency set to minimum of 62.5hz
+#define DIGIMOUSE_MAX_REPORT_INTERVAL 16
 
 
 
@@ -141,12 +145,15 @@ void clearMove()
 class DigiMouseDevice {
  public:
   DigiMouseDevice () {
+    // this timer stuff doesn't even make sense - it seems like someone got some code for Timer1
+    // and haphazardly changed the 1's in the register names to 0's, but the two timers don't work
+    // the same way, so this code doesn't do what it says at all. Is it even useful to have?
 	  /* configure timer 0 for a rate of 16M5/(1024 * 256) = 62.94 Hz (~16ms) */
-	  TCCR0A = 5;      /* timer 0 prescaler: 1024 */
+	  //TCCR0A = 5;      /* timer 0 prescaler: 1024 */
 
 	
 		
-    TIMSK &= !(1<TOIE0);//interrupt off
+    //TIMSK &= !(1<TOIE0);//interrupt off
     cli();
     usbDeviceDisconnect();
     _delay_ms(250);
@@ -161,22 +168,31 @@ class DigiMouseDevice {
     usbInit();
       
     sei();
+    lastReportTime = millis();
   }
     
   void update() {
     usbPoll();
 	
+	// seeing as the timer wasn't configured properly anyway, this code is probably not useful at all
+	// so lets not mess with the timers
+	//if(TIFR & (1<<TOV0)){   /* 16 ms timer */
+	//		TIFR = 1<<TOV0;
+	//		if(idleRate != 0){
+	//			if(idleCounter > 3){
+	//				idleCounter -= 4;   /* 16 ms in units of 4 ms */
+	//			}else{
+	//				idleCounter = idleRate;
+	//				must_report = 1;
+	//			}
+	//		}
+	//}
 	
-	if(TIFR & (1<<TOV0)){   /* 16 ms timer */
-			TIFR = 1<<TOV0;
-			if(idleRate != 0){
-				if(idleCounter > 3){
-					idleCounter -= 4;   /* 16 ms in units of 4 ms */
-				}else{
-					idleCounter = idleRate;
-					must_report = 1;
-				}
-			}
+	// instead of above code, use millis arduino system to enforce minimum reporting frequency
+	unsigned long time_since_last_report = millis() - lastReportTime;
+	if (time_since_last_report >= DIGIMOUSE_MAX_REPORT_INTERVAL) {
+		lastReportTime = millis();
+		must_report = 1;
 	}
 	
 	if(memcmp(last_built_report, last_sent_report, REPORT_SIZE)) must_report = 1;
