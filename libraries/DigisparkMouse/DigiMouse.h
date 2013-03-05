@@ -12,6 +12,7 @@
  
 #define REPORT_SIZE 4
 
+#include <Arduino.h>
 #include <avr/pgmspace.h>
 #include <avr/interrupt.h>
 #include <avr/delay.h>
@@ -44,13 +45,12 @@ static unsigned char last_sent_report[REPORT_SIZE];
 
 uchar		 reportBuffer[REPORT_SIZE];
 
-static char must_report = 0;
-// unsigned char		idleRate;						// in 4 ms units 
-// unsigned char idleCounter = 0;
+// report frequency set to default of 50hz
+#define DIGIMOUSE_DEFAULT_REPORT_INTERVAL 20
+static unsigned char must_report = 0;
+static unsigned char idle_rate = DIGIMOUSE_DEFAULT_REPORT_INTERVAL / 4; // in units of 4ms
 // new minimum report frequency system:
 static unsigned long last_report_time = 0;
-// report frequency set to minimum of 62.5hz
-#define DIGIMOUSE_MAX_REPORT_INTERVAL 16
 
 
 
@@ -190,8 +190,8 @@ class DigiMouseDevice {
 		
 		// instead of above code, use millis arduino system to enforce minimum reporting frequency
 		unsigned long time_since_last_report = millis() - last_report_time;
-		if (time_since_last_report >= DIGIMOUSE_MAX_REPORT_INTERVAL) {
-			last_report_time = millis();
+		if (time_since_last_report >= (idle_rate * 4 /* in units of 4ms - usb spec stuff */)) {
+			last_report_time += idle_rate * 4;
 			must_report = 1;
 		}
 		
@@ -209,6 +209,17 @@ class DigiMouseDevice {
 				usbSetInterrupt(reportBuffer, REPORT_SIZE);
 			}
 		}
+	}
+	
+	// delay while updating until we are finished
+	void delay(long milli) {
+		unsigned long last = millis();
+	  while (milli > 0) {
+	    unsigned long now = millis();
+	    milli -= now - last;
+	    last = now;
+	    update();
+	  }
 	}
 	
 	void moveX(char deltaX)	{
