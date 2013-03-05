@@ -21,7 +21,7 @@ void loop() {
   // DigiJoystick.setValues(myBuf);
   
   // Or we can also set values like this:
-  DigiJoystick.setX((byte) millis() / 100); // scroll X left to right repeatedly
+  DigiJoystick.setX((byte) (millis() / 100)); // scroll X left to right repeatedly
   DigiJoystick.setY((byte) 0x30);
   DigiJoystick.setXROT((byte) 0x60);
   DigiJoystick.setYROT((byte) 0x90);
