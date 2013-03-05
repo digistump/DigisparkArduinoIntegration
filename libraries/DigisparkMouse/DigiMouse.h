@@ -37,18 +37,18 @@ static uchar rt_usbDeviceDescriptorSize = 0;
 typedef uint8_t byte;
 
 /* What was most recently read from the controller */
-unsigned char last_built_report[REPORT_SIZE];
+static unsigned char last_built_report[REPORT_SIZE];
 
 /* What was most recently sent to the host */
-unsigned char last_sent_report[REPORT_SIZE];
+static unsigned char last_sent_report[REPORT_SIZE];
 
 uchar		 reportBuffer[REPORT_SIZE];
 
-char must_report = 0;
+static char must_report = 0;
 // unsigned char		idleRate;						// in 4 ms units 
 // unsigned char idleCounter = 0;
 // new minimum report frequency system:
-unsigned long lastReportTime = 0;
+static unsigned long last_report_time = 0;
 // report frequency set to minimum of 62.5hz
 #define DIGIMOUSE_MAX_REPORT_INTERVAL 16
 
@@ -79,7 +79,7 @@ PROGMEM unsigned char mouse_usbHidReportDescriptor[] = { /* USB report descripto
 		0x75, 0x08,										 //		REPORT_SIZE (8)
 		0x95, 0x02,										 //		REPORT_COUNT (2)
 		0x81, 0x06,										 //		INPUT (Data,Var,Rel)
-	0x09, 0x38,											//	 Usage (Wheel)
+		0x09, 0x38,											//	 Usage (Wheel)
 		0x95, 0x01,											//	 Report Count (1),
 		0x81, 0x06,											//	 Input (Data, Variable, Relative)
 		0xc0,														// END_COLLECTION
@@ -119,16 +119,16 @@ unsigned char usbDescrDevice[] PROGMEM = {		/* USB device descriptor */
 };
 
 
-void buildReport(unsigned char *reportBuf)
-{
-	if (reportBuf != NULL)
+void buildReport(unsigned char *reportBuf) {
+	if (reportBuf != NULL) {
 		memcpy(reportBuf, last_built_report, REPORT_SIZE);
+	}
 	
 	memcpy(last_sent_report, last_built_report, REPORT_SIZE); 
 }
 
-void clearMove()
-{//because we send deltas in movement, so when we send them, we clear them
+void clearMove() {
+	// because we send deltas in movement, so when we send them, we clear them
 	last_built_report[1] = 0;
 	last_built_report[2] = 0;
 	last_built_report[3] = 0;
@@ -168,7 +168,7 @@ class DigiMouseDevice {
 		usbInit();
 		
 		sei();
-		lastReportTime = millis();
+		last_report_time = millis();
 	}
 	
 	void update() {
@@ -189,9 +189,9 @@ class DigiMouseDevice {
 		//}
 		
 		// instead of above code, use millis arduino system to enforce minimum reporting frequency
-		unsigned long time_since_last_report = millis() - lastReportTime;
+		unsigned long time_since_last_report = millis() - last_report_time;
 		if (time_since_last_report >= DIGIMOUSE_MAX_REPORT_INTERVAL) {
-			lastReportTime = millis();
+			last_report_time = millis();
 			must_report = 1;
 		}
 		
@@ -268,10 +268,10 @@ extern "C"{
 				//return curGamepad->report_size;
 				return REPORT_SIZE;
 			} else if (rq->bRequest == USBRQ_HID_GET_IDLE) {
-				usbMsgPtr = &idleRate;
+				usbMsgPtr = &idle_rate;
 				return 1;
 			} else if (rq->bRequest == USBRQ_HID_SET_IDLE) {
-				idleRate = rq->wValue.bytes[1];
+				idle_rate = rq->wValue.bytes[1];
 			}
 		} else {
 			/* no vendor specific requests implemented */
