@@ -174,20 +174,6 @@ class DigiMouseDevice {
 	void update() {
 		usbPoll();
 		
-		// seeing as the timer wasn't configured properly anyway, this code is probably not useful at all
-		// so lets not mess with the timers
-		//if(TIFR & (1<<TOV0)){		/* 16 ms timer */
-		//		TIFR = 1<<TOV0;
-		//		if(idleRate != 0){
-		//			if(idleCounter > 3){
-		//				idleCounter -= 4;		/* 16 ms in units of 4 ms */
-		//			}else{
-		//				idleCounter = idleRate;
-		//				must_report = 1;
-		//			}
-		//		}
-		//}
-		
 		// instead of above code, use millis arduino system to enforce minimum reporting frequency
 		unsigned long time_since_last_report = millis() - last_report_time;
 		if (time_since_last_report >= (idle_rate * 4 /* in units of 4ms - usb spec stuff */)) {
