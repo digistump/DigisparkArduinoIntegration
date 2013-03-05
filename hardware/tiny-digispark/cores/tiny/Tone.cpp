@@ -477,7 +477,7 @@ void noTone( uint8_t _pin )
 }
 
 
-ISR( TONETIMER_COMPA_vect )
+ISR( TONETIMER_COMPA_vect, ISR_NOBLOCK )
 {
   if ( tone_timer_toggle_count != 0 )
   {

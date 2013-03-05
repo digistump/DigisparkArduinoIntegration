@@ -1,4 +1,3 @@
-
 /libraries/Wire
 /libraries/EEPROM
 /libraries/Esplora
@@ -11,3 +10,6 @@
 /libraries/SPI
 /libraries/Stepper
 /libraries/WiFi
+Digispark.app
+Digispark.zip
+install.rb

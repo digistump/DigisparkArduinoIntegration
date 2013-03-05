@@ -44,6 +44,7 @@ class DigiUSBDevice : public Print {
   void update();
 
   void refresh();
+  void delay(long milliseconds);
 
   int available();
   int tx_remaining();
