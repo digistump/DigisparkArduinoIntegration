@@ -94,11 +94,11 @@ void DigiUSBDevice::refresh() {
 
 // wait a specified number of milliseconds (roughly), refreshing in the background
 void DigiUSBDevice::delay(long milli) {
-  unsigned long start = millis();
+  unsigned long last = millis();
   while (milli > 0) {
     unsigned long now = millis();
-    milli -= now - start;
-    start = now;
+    milli -= now - last;
+    last = now;
     refresh();
   }
 }
