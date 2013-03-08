@@ -31,6 +31,9 @@
 #include "core_timers.h"
 #include "wiring_private.h"
 #include "ToneTimer.h"
+#if F_CPU != 16500000L
+  #include <avr/boot.h>
+#endif
 
 #define millistimer_(t)                           TIMER_PASTE_A( timer, TIMER_TO_USE_FOR_MILLIS, t )
 #define MillisTimer_(f)                           TIMER_PASTE_A( Timer, TIMER_TO_USE_FOR_MILLIS, f )
@@ -74,7 +77,8 @@ volatile unsigned long millis_timer_overflow_count = 0;
 volatile unsigned long millis_timer_millis = 0;
 static unsigned char millis_timer_fract = 0;
 
-ISR(MILLISTIMER_OVF_vect)
+// bluebie changed isr to noblock so it wouldn't mess up USB libraries
+ISR(MILLISTIMER_OVF_vect, ISR_NOBLOCK)
 {
   // copy these to local variables so they can be stored in registers
   // (volatile variables must be read from memory on every access)
@@ -92,7 +96,7 @@ ISR(MILLISTIMER_OVF_vect)
 ...rmv */
 
   f += FRACT_INC;
-
+  
   if (f >= FRACT_MAX) 
   {
     f -= FRACT_MAX;
@@ -151,55 +155,94 @@ void delay(unsigned long ms)
   }
 }
 
-/* Delay for the given number of microseconds.  Assumes a 8 or 16 MHz clock. */
-void delayMicroseconds(unsigned int us)
-{
-  // calling avrlib's delay_us() function with low values (e.g. 1 or
-  // 2 microseconds) gives delays longer than desired.
-  //delay_us(us);
-
-#if F_CPU >= 16000000L
-  // for the 16 MHz clock on most Arduino boards
-
-  // for a one-microsecond delay, simply return.  the overhead
-  // of the function call yields a delay of approximately 1 1/8 us.
-  if (--us == 0)
-    return;
-
-  // the following loop takes a quarter of a microsecond (4 cycles)
-  // per iteration, so execute it four times for each microsecond of
-  // delay requested.
-  us <<= 2;
-
-  // account for the time taken in the preceeding commands.
-  us -= 2;
-#else
-  // for the 8 MHz internal clock on the ATmega168
-
-  // for a one- or two-microsecond delay, simply return.  the overhead of
-  // the function calls takes more than two microseconds.  can't just
-  // subtract two, since us is unsigned; we'd overflow.
-  if (--us == 0)
-    return;
-  if (--us == 0)
-    return;
-
-  // the following loop takes half of a microsecond (4 cycles)
-  // per iteration, so execute it twice for each microsecond of
-  // delay requested.
-  us <<= 1;
+#if F_CPU == 16500000L
+  // optimised delay loop from Bluebie contributed to Digispark project
+  // deals accurately with half-mhz clock speed, but can only delay in increments of 2us rounded down
+  // this loop has been tuned empirically with an oscilloscope and works in avr-gcc 4.5.1
+  void delayMicroseconds(unsigned int us){
+    us &= ((unsigned int) 0) - ((unsigned int) 2); // remove least signifficant bit
+  	while (us > 1) {
+  		// 16 nops
+  		asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");
+  		asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");
+  		// 11 nops
+  		asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");
+  		asm("NOP");asm("NOP");asm("NOP");
     
-  // partially compensate for the time taken by the preceeding commands.
-  // we can't subtract any more than this or we'd overflow w/ small delays.
-  us--;
-#endif
+  		us -= 2;
+  	}
+  }
+#else
+  /* Improved delayMicroseconds function
+   * Copyright (c) 2011, Paul Stoffregen, paul at pjrc dot com
+   * 
+   * Permission is hereby granted, free of charge, to any person obtaining a copy
+   * of this software and associated documentation files (the "Software"), to deal
+   * in the Software without restriction, including without limitation the rights
+   * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+   * copies of the Software, and to permit persons to whom the Software is
+   * furnished to do so, subject to the following conditions:
+   * 
+   * The above copyright notice and this permission notice shall be included in
+   * all copies or substantial portions of the Software.
+   * 
+   * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+   * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+   * THE SOFTWARE.
+   */
 
-  // busy wait
-  __asm__ __volatile__ (
-    "1: sbiw %0,1" "\n\t" // 2 cycles
-    "brne 1b" : "=w" (us) : "0" (us) // 2 cycles
-  );
-}
+  // modified by Bluebie in 2013 for Digispark project
+  // #include <stdint.h>
+  // #include <avr/io.h>
+  
+  void delayMicroseconds(uint16_t usec) {
+		asm volatile(
+		#if F_CPU == 16000000L
+			"sbiw	%A0, 2"			"\n\t"	// 2
+			"brcs	L_%=_end"		"\n\t"	// 1
+			"breq	L_%=_end"		"\n\t"	// 1
+			"lsl	%A0"			"\n\t"	// 1
+			"rol	%B0"			"\n\t"	// 1
+			"lsl	%A0"			"\n\t"	// 1
+			"rol	%B0"			"\n\t"	// 1  overhead: (8)/4 = 2us
+		#elif F_CPU == 8000000L
+			"sbiw	%A0, 3"			"\n\t"	// 2
+			"brcs	L_%=_end"		"\n\t"	// 1
+			"breq	L_%=_end"		"\n\t"	// 1
+			"lsl	%A0"			"\n\t"	// 1
+			"rol	%B0"			"\n\t"	// 1  overhead: (6)/2 = 3 us
+		#elif F_CPU == 4000000L
+			"sbiw	%A0, 4"			"\n\t"	// 2
+			"brcs	L_%=_end"		"\n\t"	// 1
+			"breq	L_%=_end"		"\n\t"	// 1  overhead: (4) = 4 us
+		#elif F_CPU == 2000000L
+			"sbiw	%A0, 12"		"\n\t"	// 2
+			"brcs	L_%=_end"		"\n\t"	// 1
+			"breq	L_%=_end"		"\n\t"	// 1
+			"lsr	%B0"			"\n\t"	// 1
+			"ror	%A0"			"\n\t"	// 1  overhead: (6)*2 = 12 us
+		#elif F_CPU == 1000000L
+			"sbiw	%A0, 32"		"\n\t"	// 2
+			"brcs	L_%=_end"		"\n\t"	// 1
+			"breq	L_%=_end"		"\n\t"	// 1
+			"lsr	%B0"			"\n\t"	// 1
+			"ror	%A0"			"\n\t"	// 1
+			"lsr	%B0"			"\n\t"	// 1
+			"ror	%A0"			"\n\t"	// 1  overhead: (8)*4 = 32 us
+		#endif
+		"L_%=_loop:"
+			"sbiw	%A0, 1"			"\n\t"	// 2
+			"brne	L_%=_loop"		"\n\t"	// 2
+		"L_%=_end:"
+			: "+w" (usec)
+			: "0" (usec)
+		);
+  }
+#endif
 
 static void initToneTimerInternal(void)
 {
@@ -228,8 +271,55 @@ void initToneTimer(void)
   #endif
 }
 
+#if F_CPU != 16500000L
+  // used to detect bootloader applying calibration in init
+  byte read_factory_calibration(void)
+  {
+    byte SIGRD = 5; // for some reason this isn't defined...
+    byte value = boot_signature_byte_get(1);
+    return value;
+  }
+#endif
+
 void init(void)
 {
+  // clock calibration stuff
+  // recalibrate clock if it was calibrated by bootloader (like micronucleus)
+  #if F_CPU != 16500000L
+    if (OSCCAL != read_factory_calibration()) {
+      // adjust the calibration down from 16.5mhz to 16.0mhz
+      if (OSCCAL >= 128) {
+        // maybe 8 is better? oh well - only about 0.3% out anyway
+        OSCCAL -= 7;
+      } else {
+        OSCCAL -= 5;
+      }
+    }
+  #endif
+    
+  // TODO: detect if fuses set to PLL, regular internal oscillator or external and change behaviour in this next section...
+  #if F_CPU < 16000000L
+    cli();
+    CLKPR = 0b10000000;
+    #if F_CPU == 8000000L
+      CLKPR = 1; // div 2
+    #elif F_CPU == 4000000L
+      CLKPR = 2 // div 4
+    #elif F_CPU == 2000000L
+      CLKPR = 3; // div 8
+    #elif F_CPU == 1000000L
+      CLKPR = 4; // div 16
+    #elif F_CPU == 500000L
+      CLKPR = 5; // div 32 = 500khz
+    #elif F_CPU == 250000L
+      CLKPR = 6; // div 64 = 250khz
+    #elif F_CPU == 125000L
+      CLKPR = 7; // div 128 = 125khz cpu clock
+    #else
+      #warning "Cannot prescale chip to specified F_CPU speed"
+    #endif
+  #endif
+  
   // this needs to be called before setup() or some functions won't work there
   sei();
 

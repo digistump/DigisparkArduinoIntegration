@@ -7,6 +7,7 @@
 #ifndef __DigiKeyboard_h__
 #define __DigiKeyboard_h__
 
+#include <Arduino.h>
 #include <avr/pgmspace.h>
 #include <avr/interrupt.h>
 #include <avr/delay.h>
@@ -130,7 +131,6 @@ PROGMEM char usbHidReportDescriptor[USB_CFG_HID_REPORT_DESCRIPTOR_LENGTH] = { /*
 class DigiKeyboardDevice {
  public:
   DigiKeyboardDevice () {
-    TIMSK &= !(1<TOIE0);
     cli();
     usbDeviceDisconnect();
     _delay_ms(250);
@@ -150,45 +150,53 @@ class DigiKeyboardDevice {
   void update() {
     usbPoll();
   }
-    
+	
+	// delay while updating until we are finished delaying
+	void delay(long milli) {
+		unsigned long last = millis();
+	  while (milli > 0) {
+	    unsigned long now = millis();
+	    milli -= now - last;
+	    last = now;
+	    update();
+	  }
+	}
+  
   void sendKeyStroke(byte keyStroke) {
     sendKeyStroke(keyStroke, 0);
   }
 
   void sendKeyStroke(byte keyStroke, byte modifiers) {
-      
-   while (!usbInterruptIsReady()) {
+   	while (!usbInterruptIsReady()) {
       // Note: We wait until we can send keystroke
       //       so we know the previous keystroke was
       //       sent.
-    usbPoll();
-    _delay_ms(5);
+    	usbPoll();
+    	_delay_ms(5);
     }
-      
+    
     memset(reportBuffer, 0, sizeof(reportBuffer));
-
+		
     reportBuffer[0] = modifiers;
     reportBuffer[1] = keyStroke;
-        
+    
     usbSetInterrupt(reportBuffer, sizeof(reportBuffer));
-
-  while (!usbInterruptIsReady()) {
+		
+  	while (!usbInterruptIsReady()) {
       // Note: We wait until we can send keystroke
       //       so we know the previous keystroke was
       //       sent.
-    usbPoll();
-    _delay_ms(5);
+    	usbPoll();
+    	_delay_ms(5);
     }
       
     // This stops endlessly repeating keystrokes:
     memset(reportBuffer, 0, sizeof(reportBuffer));      
     usbSetInterrupt(reportBuffer, sizeof(reportBuffer));
-
   }
     
   //private: TODO: Make friend?
   uchar    reportBuffer[2];    // buffer for HID reports [ 1 modifier byte + (len-1) key strokes]
-
 };
 
 DigiKeyboardDevice DigiKeyboard = DigiKeyboardDevice();
@@ -197,31 +205,33 @@ DigiKeyboardDevice DigiKeyboard = DigiKeyboardDevice();
 extern "C"{
 #endif 
   // USB_PUBLIC uchar usbFunctionSetup
-uchar usbFunctionSetup(uchar data[8]) 
-  {
+	uchar usbFunctionSetup(uchar data[8]) {
     usbRequest_t    *rq = (usbRequest_t *)((void *)data);
 
     usbMsgPtr = DigiKeyboard.reportBuffer; //
-    if((rq->bmRequestType & USBRQ_TYPE_MASK) == USBRQ_TYPE_CLASS){
+    if ((rq->bmRequestType & USBRQ_TYPE_MASK) == USBRQ_TYPE_CLASS) {
       /* class request type */
 
-      if(rq->bRequest == USBRQ_HID_GET_REPORT){
-	/* wValue: ReportType (highbyte), ReportID (lowbyte) */
+      if (rq->bRequest == USBRQ_HID_GET_REPORT) {
+				/* wValue: ReportType (highbyte), ReportID (lowbyte) */
 
-	/* we only have one report type, so don't look at wValue */
+				/* we only have one report type, so don't look at wValue */
         // TODO: Ensure it's okay not to return anything here?    
-	return 0;
+				return 0;
 
-      }else if(rq->bRequest == USBRQ_HID_GET_IDLE){
-	//            usbMsgPtr = &idleRate;
-	//            return 1;
-	return 0;
-      }else if(rq->bRequest == USBRQ_HID_SET_IDLE){
-	idleRate = rq->wValue.bytes[1];
+      } else if (rq->bRequest == USBRQ_HID_GET_IDLE) {
+				//usbMsgPtr = &idleRate;
+				//return 1;
+				return 0;
+				
+      } else if (rq->bRequest == USBRQ_HID_SET_IDLE) {
+				idleRate = rq->wValue.bytes[1];
+				
       }
-    }else{
+    } else {
       /* no vendor specific requests implemented */
     }
+		
     return 0;
   }
 #ifdef __cplusplus

@@ -21,6 +21,7 @@ different I/O pins for USB. Please note that USB D+ must be the INT0 pin, or
 at least be connected to INT0 as well.
 */
 
+#include <Arduino.h>
 #include <avr/io.h>
 #include <avr/wdt.h>
 #include <avr/interrupt.h>  /* for sei() */
@@ -31,6 +32,10 @@ at least be connected to INT0 as well.
 #include "oddebug.h"        /* This is also an example for using debug macros */
 
 #include "DigiUSB.h"
+
+#if F_CPU != 16500000L
+  #error "You must use Digispark (Tiny Core) board to use USB libraries"
+#endif
 
 // Ring buffer implementation nicked from HardwareSerial.cpp
 // TODO: Don't nick it. :)
@@ -62,9 +67,6 @@ DigiUSBDevice::DigiUSBDevice(ring_buffer *rx_buffer,
 }
 
 void DigiUSBDevice::begin() {
-    // disable timer 0 overflow interrupt (used for millis)
-    TIMSK&=!(1<<TOIE0);
-
     cli();
 
     usbInit();
@@ -76,7 +78,7 @@ void DigiUSBDevice::begin() {
         _delay_ms(1);
     }
     usbDeviceConnect();
-
+    
     sei();
   }
     
@@ -85,8 +87,20 @@ void DigiUSBDevice::update() {
   refresh();
 }
 
+
 void DigiUSBDevice::refresh() {
   usbPoll();
+}
+
+// wait a specified number of milliseconds (roughly), refreshing in the background
+void DigiUSBDevice::delay(long milli) {
+  unsigned long last = millis();
+  while (milli > 0) {
+    unsigned long now = millis();
+    milli -= now - last;
+    last = now;
+    refresh();
+  }
 }
 
 int DigiUSBDevice::available() {
