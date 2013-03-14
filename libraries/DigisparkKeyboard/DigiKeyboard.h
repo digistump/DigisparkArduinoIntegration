@@ -14,6 +14,7 @@
 #include <string.h>
 
 #include "usbdrv.h"
+#include "scancode-ascii-table.h"
 
 // TODO: Work around Arduino 12 issues better.
 //#include <WConstants.h>
@@ -128,7 +129,7 @@ PROGMEM char usbHidReportDescriptor[USB_CFG_HID_REPORT_DESCRIPTOR_LENGTH] = { /*
 #define KEY_ARROW_LEFT 0x50
 
 
-class DigiKeyboardDevice {
+class DigiKeyboardDevice : public Print {
  public:
   DigiKeyboardDevice () {
     cli();
@@ -194,9 +195,16 @@ class DigiKeyboardDevice {
     memset(reportBuffer, 0, sizeof(reportBuffer));      
     usbSetInterrupt(reportBuffer, sizeof(reportBuffer));
   }
+  
+  size_t write(uint8_t chr) {
+    uint8_t data = pgm_read_byte_near(ascii_to_scan_code_table + (chr - 8));
+    sendKeyStroke(data & 0b01111111, data >> 7 ? MOD_SHIFT_RIGHT : 0);
+    return 1;
+  }
     
   //private: TODO: Make friend?
   uchar    reportBuffer[2];    // buffer for HID reports [ 1 modifier byte + (len-1) key strokes]
+  using Print::write;
 };
 
 DigiKeyboardDevice DigiKeyboard = DigiKeyboardDevice();
