@@ -41,7 +41,7 @@ http://arduiniana.org.
 #include <inttypes.h>
 #include <Stream.h>
 
-#include "<TinyPinChange.h>"
+#include <TinyPinChange.h>
 
 /******************************************************************************
 * Definitions
