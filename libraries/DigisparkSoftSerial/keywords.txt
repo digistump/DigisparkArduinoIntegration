@@ -20,6 +20,8 @@ isListening	KEYWORD2
 overflow	KEYWORD2
 flush	KEYWORD2
 listen	KEYWORD2
+txMode	KEYWORD2
+rxMode	KEYWORD2
 
 #######################################
 # Constants (LITERAL1)

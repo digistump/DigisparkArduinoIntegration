@@ -96,7 +96,8 @@ public:
   bool isListening() { return this == active_object; }
   bool overflow() { bool ret = _buffer_overflow; _buffer_overflow = false; return ret; }
   int peek();
-
+  void txMode();
+  void rxMode();
   virtual size_t write(uint8_t byte);
   virtual int read();
   virtual int available();
