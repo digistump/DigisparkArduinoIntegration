@@ -145,6 +145,14 @@ void TinyPinChange_EnablePin(uint8_t Pin)
     }
 }
 
+void TinyPinChange_DisablePin(uint8_t Pin)
+{
+    if(digitalPinToPCICR(Pin))
+    {
+	  *digitalPinToPCMSK(Pin) &= (_BV(digitalPinToPCMSKbit(Pin)) ^ 0xFF);
+    }
+}
+
 /*********************************************************************
 	PinChange GetEvent Function
 Input:
