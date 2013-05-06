@@ -1,6 +1,6 @@
 #include "RcSeq.h"
 /*
- English: by RC Navy (2012)
+ English: by RC Navy (2012/2013)
  =======
  <RcSeq> is an asynchronous library for ATmega328P (UNO), ATtiny84 and ATtiny85 to easily create servo's sequences and/or to execute short actions from RC commands.
  It can also be used to trig some short "actions" (the duration must be less than 20ms to not disturb the servo commands)
@@ -75,34 +75,34 @@
 								MACROS
 *************************************************************************/
 /* For an easy Library Version Management */
-#define LIB_VERSION						1
-#define LIB_REVISION					0
+#define LIB_VERSION			1
+#define LIB_REVISION			0
 
-#define STR(s)							#s
-#define MAKE_TEXT_VER_REV(Ver,Rev)		(char*)(STR(Ver)"."STR(Rev))
+#define STR(s)				#s
+#define MAKE_TEXT_VER_REV(Ver,Rev)	(char*)(STR(Ver)"."STR(Rev))
 
-#define LIB_TEXT_VERSION_REVISION		MAKE_TEXT_VER_REV(LIB_VERSION,LIB_REVISION) /* Make Full version as a string "Ver.Rev" */
+#define LIB_TEXT_VERSION_REVISION	MAKE_TEXT_VER_REV(LIB_VERSION,LIB_REVISION) /* Make Full version as a string "Ver.Rev" */
 
 /* A Set of Macros for bit manipulation */
-#define SET_BIT(Value,BitIdx)			(Value)|= (1<<(BitIdx))
-#define CLR_BIT(Value,BitIdx)			(Value)&=~(1<<(BitIdx))
-#define TST_BIT(Value,BitIdx)			((Value)&(1<<(BitIdx)))
+#define SET_BIT(Value,BitIdx)		(Value)|= (1<<(BitIdx))
+#define CLR_BIT(Value,BitIdx)		(Value)&=~(1<<(BitIdx))
+#define TST_BIT(Value,BitIdx)		((Value)&(1<<(BitIdx)))
 
 /* Servo refresh interval in ms (do not change this value, this one allows "round" values) */
-#define REFRESH_INTERVAL_MS             20L
+#define REFRESH_INTERVAL_MS            20L
 
 /* A pulse shall be valid during XXXX_PULSE_CHECK_MS before being taken into account */
-#define STICK_PULSE_CHECK_MS            100L
+#define STICK_PULSE_CHECK_MS           100L
 #define KBD_PULSE_CHECK_MS            	10L
 
 /* Duration between 2 consecutive commands */
-#define INTER_CMD_DURATION_MS           1000L
+#define INTER_CMD_DURATION_MS          1000L
 
 /* Free servo Indicator */
-#define NO_SEQ_LINE                     255
+#define NO_SEQ_LINE                    255
 
 /* Free Position Indicator */
-#define NO_POS                          255
+#define NO_POS                         255
 
 /* The macro below computes how many refresh to perform while a duration in ms */
 #define REFRESH_NB(DurationMs)         ((DurationMs)/REFRESH_INTERVAL_MS)
@@ -110,9 +110,9 @@
 /* The motion goes from StartInDegrees to EndInDegrees and will take MotionDurationMs in ms */
 #define STEP_IN_DEGREES_PER_REFRESH(StartInDegrees,EndInDegrees,MotionDurationMs) (EndInDegrees-StartInDegrees)/REFRESH_NB(MotionDurationMs)
 /* A set of Macros to read an (u)int8_t (Byte), an (u)int16_t (Word) in  program memory (Flash memory) */
-#define PGM_READ_8(FlashAddr)			pgm_read_byte(&(FlashAddr))
-#define PGM_READ_16(FlashAddr)			pgm_read_word(&(FlashAddr))
-#define PGM_READ_32(FlashAddr)			pgm_read_dword(&(FlashAddr))
+#define PGM_READ_8(FlashAddr)		pgm_read_byte(&(FlashAddr))
+#define PGM_READ_16(FlashAddr)		pgm_read_word(&(FlashAddr))
+#define PGM_READ_32(FlashAddr)		pgm_read_dword(&(FlashAddr))
 
 /*
 STICK TYPE:
@@ -121,12 +121,12 @@ Pos 0     1      2     3
   |---|-|---|--|---|-|---|
 1000us                 2000us (Typical Pulse Width values)
 */
-#define ACTIVE_AREA_STEP_NBR            3
-#define INACTIVE_AREA_STEP_NBR          1
-#define TOTAL_STEP_NBR(KeyNb,Type)      ((Type==RC_CMD_STICK)?((KeyNb)*(ACTIVE_AREA_STEP_NBR+INACTIVE_AREA_STEP_NBR)):(((KeyNb)*(ACTIVE_AREA_STEP_NBR+INACTIVE_AREA_STEP_NBR))-1))
-#define STEP(MinUs, MaxUs,KeyNb,Type)   ((MaxUs-MinUs)/TOTAL_STEP_NBR(KeyNb,Type))
-#define KEY_MIN_VAL(Idx,Step)           ((ACTIVE_AREA_STEP_NBR+INACTIVE_AREA_STEP_NBR)*(Step)*(Idx))
-#define KEY_MAX_VAL(Idx,Step)           (KEY_MIN_VAL(Idx,Step)+(ACTIVE_AREA_STEP_NBR*(Step)))
+#define ACTIVE_AREA_STEP_NBR           3
+#define INACTIVE_AREA_STEP_NBR         1
+#define TOTAL_STEP_NBR(KeyNb,Type)     ((Type==RC_CMD_STICK)?((KeyNb)*(ACTIVE_AREA_STEP_NBR+INACTIVE_AREA_STEP_NBR)):(((KeyNb)*(ACTIVE_AREA_STEP_NBR+INACTIVE_AREA_STEP_NBR))-1))
+#define STEP(MinUs, MaxUs,KeyNb,Type)  ((MaxUs-MinUs)/TOTAL_STEP_NBR(KeyNb,Type))
+#define KEY_MIN_VAL(Idx,Step)          ((ACTIVE_AREA_STEP_NBR+INACTIVE_AREA_STEP_NBR)*(Step)*(Idx))
+#define KEY_MAX_VAL(Idx,Step)          (KEY_MIN_VAL(Idx,Step)+(ACTIVE_AREA_STEP_NBR*(Step)))
 
 typedef struct {
   int8_t   InProgress;
@@ -138,6 +138,7 @@ typedef struct {
   uint8_t  ShortActionMap;
 }CmdSequenceSt_t;
 
+#ifdef RC_SEQ_WITH_SOFT_RC_PULSE_IN_SUPPORT
 typedef struct {
   int8_t   Idx;
   uint32_t StartChronoMs;
@@ -153,6 +154,7 @@ typedef struct {
   uint16_t    StepUs;
   KeyMap_t   *KeyMap;
 }RcCmdSt_t;
+#endif
 
 typedef struct {
   SoftRcPulseOut Motor;
@@ -162,37 +164,55 @@ typedef struct {
 /*************************************************************************
 							GLOBAL VARIABLES
 *************************************************************************/
-static uint8_t CmdSignalNb;
-static uint8_t ServoNb;
 static uint8_t SeqNb;
+static uint8_t ServoNb;
+#ifdef RC_SEQ_WITH_SOFT_RC_PULSE_IN_SUPPORT
+static uint8_t CmdSignalNb;
 static RcCmdSt_t          RcChannel[RC_CMD_MAX_NB];
+#endif
+#ifdef RC_SEQ_WITH_STATIC_MEM_ALLOC_SUPPORT
+#define  AsMember 	   .
 static ServoSt_t          Servo[SERVO_MAX_NB];
 static CmdSequenceSt_t    CmdSequence[SEQUENCE_MAX_NB];
-
+#else
+#define  AsMember 	   ->
+static ServoSt_t          **Servo=NULL;
+static CmdSequenceSt_t    **CmdSequence=NULL;
+#endif
 /*************************************************************************
 					PRIVATE FUNCTION PROTOTYPES
 *************************************************************************/
 static void   ExecuteSequence(uint8_t CmdIdx, uint8_t Pos);
+#ifndef RC_SEQ_WITH_STATIC_MEM_ALLOC_SUPPORT
+static void   LoadSequenceOrShortAction(uint8_t CmdIdx,uint8_t Pos,void *SequenceOrShortAction, uint8_t SequenceLength);
+#endif
+#ifdef RC_SEQ_WITH_SOFT_RC_PULSE_IN_SUPPORT
 static int8_t GetPos(uint8_t ChIdx,uint16_t PulseWidthUs);
+#endif
 
 //========================================================================================================================
 void RcSeq_Init(void)
 {
-uint8_t ChIdx, SeqIdx;
 	SeqNb=0;
 	ServoNb=0;
-	for(ChIdx=0;ChIdx<RC_CMD_MAX_NB;ChIdx++)
+#ifdef RC_SEQ_WITH_SOFT_RC_PULSE_IN_SUPPORT
+	for(uint8_t ChIdx=0;ChIdx<RC_CMD_MAX_NB;ChIdx++)
 	{
 		RcChannel[ChIdx].Pos.Idx=NO_POS;
 	}
-	for(SeqIdx=0;SeqIdx<SEQUENCE_MAX_NB;SeqIdx++)
+#endif
+#ifdef RC_SEQ_WITH_STATIC_MEM_ALLOC_SUPPORT
+	for(uint8_t SeqIdx=0;SeqIdx<SEQUENCE_MAX_NB;SeqIdx++)
 	{
 		CmdSequence[SeqIdx].InProgress=0;
 		CmdSequence[SeqIdx].TableOrShortAction=NULL;
 		CmdSequence[SeqIdx].SequenceLength=0;
 		CmdSequence[SeqIdx].ShortActionMap=0;
 	}
+#endif
+#ifdef RC_SEQ_WITH_SOFT_RC_PULSE_IN_SUPPORT
 	TinyPinChange_Init();
+#endif
 }
 //========================================================================================================================
 uint8_t RcSeq_LibVersion(void)
@@ -210,6 +230,28 @@ char *RcSeq_LibTextVersionRevision(void)
 	return(LIB_TEXT_VERSION_REVISION);
 }
 //========================================================================================================================
+void RcSeq_DeclareServo(uint8_t Idx, uint8_t DigitalPin)
+{
+#ifdef RC_SEQ_WITH_STATIC_MEM_ALLOC_SUPPORT
+	if(Idx<SERVO_MAX_NB)
+	{
+		Servo[Idx].Motor.attach(DigitalPin);
+		Servo[Idx].SeqLineInProgress=NO_SEQ_LINE;
+		if(ServoNb<(Idx+1)) ServoNb=(Idx+1);
+	}
+#else
+	if(Idx<SERVO_MAX_NB)
+	{
+		ServoNb++;
+		if(!Servo) Servo=(ServoSt_t**)malloc(sizeof(ServoSt_t));
+		else       Servo=(ServoSt_t**)realloc(Servo, sizeof(ServoSt_t)*ServoNb);
+		Servo[Idx] AsMember Motor.attach(DigitalPin);
+		Servo[Idx] AsMember SeqLineInProgress=NO_SEQ_LINE;
+	}
+#endif
+}
+//========================================================================================================================
+#ifdef RC_SEQ_WITH_SOFT_RC_PULSE_IN_SUPPORT
 void RcSeq_DeclareSignal(uint8_t Idx, uint8_t DigitalPin)
 {
 	if(Idx<RC_CMD_MAX_NB)
@@ -233,23 +275,14 @@ void RcSeq_DeclareCustomKeyboard(uint8_t ChIdx, KeyMap_t *KeyMapTbl, uint8_t Key
 {
 	RcSeq_DeclareKeyboardOrStickOrCustom(ChIdx, RC_CMD_CUSTOM, 0, 0, KeyMapTbl, KeyNb);
 }
+#endif
 //========================================================================================================================
-void RcSeq_DeclareServo(uint8_t Idx, uint8_t DigitalPin)
-{
-	if(Idx<SERVO_MAX_NB)
-	{
-		Servo[Idx].Motor.attach(DigitalPin);
-		Servo[Idx].SeqLineInProgress=NO_SEQ_LINE;
-		if(ServoNb<(Idx+1)) ServoNb=(Idx+1);
-	}
-}
-//========================================================================================================================
-void RcSeq_DeclareCommandeEtSequence(uint8_t CmdIdx,uint8_t Pos,SequenceSt_t *Table, uint8_t SequenceLength)
+void RcSeq_DeclareCommandAndSequence(uint8_t CmdIdx,uint8_t Pos,SequenceSt_t *Table, uint8_t SequenceLength)
 {
 uint8_t  Idx, ServoIdx;
 uint16_t StartInDegrees;
 uint32_t StartMinMs[SERVO_MAX_NB];
-
+#ifdef RC_SEQ_WITH_STATIC_MEM_ALLOC_SUPPORT
 	for(Idx=0;Idx<SEQUENCE_MAX_NB;Idx++)
 	{
 		if(!CmdSequence[Idx].TableOrShortAction)
@@ -262,6 +295,10 @@ uint32_t StartMinMs[SERVO_MAX_NB];
 			break;
 		}
 	}
+#else
+	LoadSequenceOrShortAction(CmdIdx,Pos,(void*)Table, SequenceLength);
+#endif
+
 	/* Get initial pulse width for each Servo */
 	for(Idx=0;Idx<SERVO_MAX_NB;Idx++)
 	{
@@ -276,14 +313,16 @@ uint32_t StartMinMs[SERVO_MAX_NB];
 			{
 				StartMinMs[ServoIdx]=(uint32_t)PGM_READ_32(Table[Idx].StartMotionOffsetMs);
 				StartInDegrees=(uint16_t)PGM_READ_8(Table[Idx].StartInDegrees);
-				Servo[ServoIdx].Motor.write(StartInDegrees);
+				Servo[ServoIdx] AsMember Motor.write(StartInDegrees);
 			}
 		}
 	}
 }
+#ifdef RC_SEQ_WITH_SOFT_RC_PULSE_IN_SUPPORT
 //========================================================================================================================
 void RcSeq_DeclareCommandAndShortAction(uint8_t CmdIdx,uint8_t Pos,void(*ShortAction)(void))
 {
+#ifdef RC_SEQ_WITH_STATIC_MEM_ALLOC_SUPPORT
 uint8_t Idx;
 	for(Idx=0;Idx<SEQUENCE_MAX_NB;Idx++)
 	{
@@ -296,31 +335,33 @@ uint8_t Idx;
 			break;
 		}
 	}
+#else
+	LoadSequenceOrShortAction(CmdIdx,Pos,(void*)ShortAction, 0);
+#endif
 }
+#endif
+
+#ifndef RC_SEQ_WITH_STATIC_MEM_ALLOC_SUPPORT
+static void LoadSequenceOrShortAction(uint8_t CmdIdx,uint8_t Pos,void *SequenceOrShortAction, uint8_t SequenceLength)
+{
+	if(!CmdSequence) CmdSequence=(CmdSequenceSt_t**)malloc(sizeof(CmdSequenceSt_t));
+	else             CmdSequence=(CmdSequenceSt_t**)realloc(CmdSequence,sizeof(CmdSequence)+sizeof(CmdSequenceSt_t));
+	CmdSequence[SeqNb] AsMember CmdIdx=CmdIdx;
+	CmdSequence[SeqNb] AsMember Pos=Pos;
+	CmdSequence[SeqNb] AsMember TableOrShortAction=(void*)SequenceOrShortAction;
+	CmdSequence[SeqNb] AsMember SequenceLength=SequenceLength;
+	SeqNb++;
+}
+#endif
 //========================================================================================================================
-uint8_t RcSeq_LanceSequence(SequenceSt_t *Table)
+uint8_t RcSeq_LaunchSequence(SequenceSt_t *Table)
 {
 uint8_t Idx, Ret=0;
 	for(Idx=0;Idx<SEQUENCE_MAX_NB;Idx++)
 	{
-		if(CmdSequence[Idx].TableOrShortAction==(void*)Table)
+		if(CmdSequence[Idx] AsMember TableOrShortAction==(void*)Table)
 		{
-			ExecuteSequence(CmdSequence[Idx].CmdIdx,CmdSequence[Idx].Pos);
-			Ret=1;
-			break;
-		}
-	}
-	return(Ret);
-}
-//========================================================================================================================
-uint8_t RcSeq_LaunchShortAction(void(*ShortAction)(void))
-{
-uint8_t Idx, Ret=0;
-	for(Idx=0;Idx<SEQUENCE_MAX_NB;Idx++)
-	{
-		if(CmdSequence[Idx].TableOrShortAction==(void*)ShortAction)
-		{
-			ExecuteSequence(CmdSequence[Idx].CmdIdx,CmdSequence[Idx].Pos);
+			ExecuteSequence(CmdSequence[Idx] AsMember CmdIdx,CmdSequence[Idx] AsMember Pos);
 			Ret=1;
 			break;
 		}
@@ -334,10 +375,14 @@ static uint32_t NowMs=millis();
 static uint32_t StartChronoInterPulseMs=millis();
 SequenceSt_t   *SequenceTable;
 void           (*ShortAction)(void);
-int8_t          ShortActionCnt,CmdPos;
-uint8_t         ChIdx, ServoIdx;
-uint32_t        RcPulseWidthUs, MotionDurationMs, DebutSeqMs, FinSeqMs, Pos;
+int8_t          ShortActionCnt;
+uint8_t         ServoIdx;
+uint32_t        MotionDurationMs, StartOfSeqMs, EndOfSeqMs, Pos;
 uint16_t        StartInDegrees, EndInDegrees;
+
+#ifdef RC_SEQ_WITH_SOFT_RC_PULSE_IN_SUPPORT
+uint8_t         ChIdx, CmdPos;
+uint32_t        RcPulseWidthUs;
 
 	/* Asynchronous RC Command acquisition */
 	for(ChIdx=0;ChIdx<CmdSignalNb;ChIdx++)
@@ -369,6 +414,7 @@ uint16_t        StartInDegrees, EndInDegrees;
 			RcChannel[ChIdx].Pos.Idx=NO_POS;
 		}
 	}
+#endif
     NowMs=millis();
     if((NowMs - StartChronoInterPulseMs) >= 20L)
     {
@@ -376,63 +422,65 @@ uint16_t        StartInDegrees, EndInDegrees;
 		/* Asynchronous Servo Sequence management */
 		for(int8_t Idx=0;Idx<SeqNb;Idx++)
 		{
-			if(!CmdSequence[Idx].InProgress || !CmdSequence[Idx].SequenceLength) continue;
+			if(!CmdSequence[Idx] AsMember InProgress || !CmdSequence[Idx] AsMember SequenceLength) continue;
 			ShortActionCnt=-1;
-			for(int8_t SeqLine=0;SeqLine<CmdSequence[Idx].SequenceLength;SeqLine++) /* Read all lines of the sequence table: this allows to run several servos simultaneously (not forcibly one after the other) */
+			for(int8_t SeqLine=0;SeqLine<CmdSequence[Idx] AsMember SequenceLength;SeqLine++) /* Read all lines of the sequence table: this allows to run several servos simultaneously (not forcibly one after the other) */
 			{
-				SequenceTable=(SequenceSt_t *)CmdSequence[Idx].TableOrShortAction;
+				SequenceTable=(SequenceSt_t *)CmdSequence[Idx] AsMember TableOrShortAction;
 				ServoIdx=(int8_t)PGM_READ_8(SequenceTable[SeqLine].ServoIndex);
+#ifdef RC_SEQ_WITH_SHORT_ACTION_SUPPORT
 				if(ServoIdx==255) /* Not a Servo: it's a short Action to perform only if not already done */
 				{
 					ShortActionCnt++;
-					DebutSeqMs = CmdSequence[Idx].StartChronoMs + (int32_t)PGM_READ_32(SequenceTable[SeqLine].StartMotionOffsetMs);
-					if( (NowMs>=DebutSeqMs) && !TST_BIT(CmdSequence[Idx].ShortActionMap,ShortActionCnt) )
+					StartOfSeqMs = CmdSequence[Idx] AsMember StartChronoMs + (int32_t)PGM_READ_32(SequenceTable[SeqLine].StartMotionOffsetMs);
+					if( (NowMs>=StartOfSeqMs) && !TST_BIT(CmdSequence[Idx] AsMember ShortActionMap,ShortActionCnt) )
 					{
-						ShortAction=(void(*)(void))PGM_READ_32(SequenceTable[SeqLine].ShortAction);
+						ShortAction=(void(*)(void))PGM_READ_16(SequenceTable[SeqLine].ShortAction);
 						ShortAction();
-						SET_BIT(CmdSequence[Idx].ShortActionMap,ShortActionCnt); /* Mark short Action as performed */
-						/* If the last line contains an Action  -> End of Sequence */
-						if(SeqLine==(CmdSequence[Idx].SequenceLength-1))
+						SET_BIT(CmdSequence[Idx] AsMember ShortActionMap,ShortActionCnt); /* Mark short Action as performed */
+						/* If the last line contains an Action   AsMember  End of Sequence */
+						if(SeqLine==(CmdSequence[Idx] AsMember SequenceLength-1))
 						{
-							CmdSequence[Idx].InProgress=0;
-							CmdSequence[Idx].ShortActionMap=0; /* Mark all Short Action as not performed */
+							CmdSequence[Idx] AsMember InProgress=0;
+							CmdSequence[Idx] AsMember ShortActionMap=0; /* Mark all Short Action as not performed */
 						}
 					}
 					continue;
 				}
-				if(Servo[ServoIdx].RefreshNb && SeqLine!=Servo[ServoIdx].SeqLineInProgress)
+#endif
+				if(Servo[ServoIdx] AsMember RefreshNb && SeqLine!=Servo[ServoIdx] AsMember SeqLineInProgress)
 				{
 					continue;
 				}
-				DebutSeqMs = CmdSequence[Idx].StartChronoMs + (int32_t)PGM_READ_32(SequenceTable[SeqLine].StartMotionOffsetMs);
+				StartOfSeqMs = CmdSequence[Idx] AsMember StartChronoMs + (int32_t)PGM_READ_32(SequenceTable[SeqLine].StartMotionOffsetMs);
 				MotionDurationMs = (int32_t)PGM_READ_32(SequenceTable[SeqLine].MotionDurationMs);
-				FinSeqMs = DebutSeqMs + MotionDurationMs;
-				if(!Servo[ServoIdx].RefreshNb && Servo[ServoIdx].SeqLineInProgress==NO_SEQ_LINE)
+				EndOfSeqMs = StartOfSeqMs + MotionDurationMs;
+				if(!Servo[ServoIdx] AsMember RefreshNb && Servo[ServoIdx] AsMember SeqLineInProgress==NO_SEQ_LINE)
 				{
-					if( (NowMs>=DebutSeqMs) && (NowMs<=FinSeqMs) )
+					if( (NowMs>=StartOfSeqMs) && (NowMs<=EndOfSeqMs) )
 					{
-						Servo[ServoIdx].SeqLineInProgress=SeqLine;
+						Servo[ServoIdx] AsMember SeqLineInProgress=SeqLine;
 						StartInDegrees=(uint16_t)PGM_READ_8(SequenceTable[SeqLine].StartInDegrees);
-						Servo[ServoIdx].RefreshNb=REFRESH_NB(MotionDurationMs);
-						Servo[ServoIdx].Motor.write(StartInDegrees);
+						Servo[ServoIdx] AsMember RefreshNb=REFRESH_NB(MotionDurationMs);
+						Servo[ServoIdx] AsMember Motor.write(StartInDegrees);
 					}
 				}
 				else
 				{
 					/* A sequence line is in progress: update the next position */
-					if(Servo[ServoIdx].RefreshNb) Servo[ServoIdx].RefreshNb--;
+					if(Servo[ServoIdx] AsMember RefreshNb) Servo[ServoIdx] AsMember RefreshNb--;
 					StartInDegrees=(uint16_t)PGM_READ_8(SequenceTable[SeqLine].StartInDegrees);
 					EndInDegrees=(uint16_t)PGM_READ_8(SequenceTable[SeqLine].EndInDegrees);
-					Pos=(int32_t)EndInDegrees-((int32_t)Servo[ServoIdx].RefreshNb*STEP_IN_DEGREES_PER_REFRESH((int32_t)StartInDegrees,(int32_t)EndInDegrees,(int32_t)MotionDurationMs)); //Pour le nombre max de refresh, Pos vaut StartInDegrees
-					Servo[ServoIdx].Motor.write(Pos);
-					if( !Servo[ServoIdx].RefreshNb )
+					Pos=(int32_t)EndInDegrees-((int32_t)Servo[ServoIdx] AsMember RefreshNb*STEP_IN_DEGREES_PER_REFRESH((int32_t)StartInDegrees,(int32_t)EndInDegrees,(int32_t)MotionDurationMs)); //For refresh max nb, Pos = StartInDegrees
+					Servo[ServoIdx] AsMember Motor.write(Pos);
+					if( !Servo[ServoIdx] AsMember RefreshNb )
 					{
-						Servo[ServoIdx].SeqLineInProgress=NO_SEQ_LINE;
-						/* Last servo motion and refresh = 0 -> End of Sequence */
-						if(SeqLine==(CmdSequence[Idx].SequenceLength-1))
+						Servo[ServoIdx] AsMember SeqLineInProgress=NO_SEQ_LINE;
+						/* Last servo motion and refresh = 0  ->  End of Sequence */
+						if(SeqLine==(CmdSequence[Idx] AsMember SequenceLength-1))
 						{
-							CmdSequence[Idx].InProgress=0;
-							CmdSequence[Idx].ShortActionMap=0; /* Mark all Short Action as not performed */
+							CmdSequence[Idx] AsMember InProgress=0;
+							CmdSequence[Idx] AsMember ShortActionMap=0; /* Mark all Short Action as not performed */
 						}
 					}
 				}
@@ -453,19 +501,23 @@ uint8_t Idx;
 
 	for(Idx=0;Idx<SeqNb;Idx++)
 	{
-		if((CmdSequence[Idx].CmdIdx==CmdIdx) && (CmdSequence[Idx].Pos==Pos))
+		if((CmdSequence[Idx] AsMember CmdIdx==CmdIdx) && (CmdSequence[Idx] AsMember Pos==Pos))
 		{
-			if(CmdSequence[Idx].TableOrShortAction && !CmdSequence[Idx].SequenceLength)
+#ifdef RC_SEQ_WITH_SHORT_ACTION_SUPPORT
+			if(CmdSequence[Idx] AsMember TableOrShortAction && !CmdSequence[Idx] AsMember SequenceLength)
 			{
-				ShortAction=(void(*)(void))CmdSequence[Idx].TableOrShortAction;
+				/* It's a short action */
+				ShortAction=(void(*)(void))CmdSequence[Idx] AsMember TableOrShortAction;
 				ShortAction();
 			}
 			else
+#endif
 			{
-				if(!CmdSequence[Idx].InProgress)
+				/* It's a Table of Sequence */
+				if(!CmdSequence[Idx] AsMember InProgress)
 				{
-					CmdSequence[Idx].InProgress=1;
-					CmdSequence[Idx].StartChronoMs=millis();
+					CmdSequence[Idx] AsMember InProgress=1;
+					CmdSequence[Idx] AsMember StartChronoMs=millis();
 				}
 			}
 			break;
@@ -473,6 +525,7 @@ uint8_t Idx;
 	}
 }
 //========================================================================================================================
+#ifdef RC_SEQ_WITH_SOFT_RC_PULSE_IN_SUPPORT
 static int8_t GetPos(uint8_t ChIdx,uint16_t PulseWidthUs)
 {
 int8_t  Idx, Ret=-1;
@@ -481,13 +534,8 @@ uint16_t PulseMinUs,PulseMaxUs;
     for(Idx=0;Idx<RcChannel[ChIdx].PosNb;Idx++)
     {
         switch(RcChannel[ChIdx].Type)
-        {
-//            case  RC_CMD_KEYBOARD:
-//            PulseMinUs=RcChannel[ChIdx].PulseMinUs+KEY_MIN_VAL(Idx,RcChannel[ChIdx].StepUs);
-//            PulseMaxUs=RcChannel[ChIdx].PulseMinUs+KEY_MAX_VAL(Idx,RcChannel[ChIdx].StepUs);
-//            break;
-            
-		  case  RC_CMD_STICK: /* No break: normal */
+        {            
+	    case  RC_CMD_STICK: /* No break: normal */
             case  RC_CMD_KEYBOARD:
             if(Idx<(RcChannel[ChIdx].PosNb/2))
             {
@@ -501,10 +549,10 @@ uint16_t PulseMinUs,PulseMaxUs;
             }
             break;
 			
-			case RC_CMD_CUSTOM:
-			PulseMinUs=(uint16_t)PGM_READ_16(RcChannel[ChIdx].KeyMap[Idx].Min);
-			PulseMaxUs=(uint16_t)PGM_READ_16(RcChannel[ChIdx].KeyMap[Idx].Max);
-			break;
+	    case RC_CMD_CUSTOM:
+	    PulseMinUs=(uint16_t)PGM_READ_16(RcChannel[ChIdx].KeyMap[Idx].Min);
+	    PulseMaxUs=(uint16_t)PGM_READ_16(RcChannel[ChIdx].KeyMap[Idx].Max);
+	    break;
         }
         if((PulseWidthUs>=PulseMinUs) && (PulseWidthUs<=PulseMaxUs))
         {
@@ -514,4 +562,5 @@ uint16_t PulseMinUs,PulseMaxUs;
     }
     return(Ret);
 }
+#endif
 //========================================================================================================================
