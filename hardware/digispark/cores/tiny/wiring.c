@@ -48,7 +48,7 @@
 #define MILLISTIMER_OVF_vect                      MILLISTIMER_(OVF_vect)
 
 
-#define MS_TIMER_TICK_EVERY_X_CYCLES  1 /* Shall be a within 1, 8, 64, 256 or 1024. (default = 64) If set to 1, HW PWM is around 64.5KHz@16.5MHz with Digispark */
+#define MS_TIMER_TICK_EVERY_X_CYCLES  64 /* Shall be a within 1, 8, 64, 256 or 1024. (default = 64) If set to 1, HW PWM is around 64.5KHz@16.5MHz with Digispark */
 
 #if F_CPU >= 3000000L
 #if !defined(MS_TIMER_TICK_EVERY_X_CYCLES)
