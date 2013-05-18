@@ -48,11 +48,22 @@
 #define MILLISTIMER_OVF_vect                      MILLISTIMER_(OVF_vect)
 
 
+#define MS_TIMER_TICK_EVERY_X_CYCLES  1 /* Shall be a within 1, 8, 64, 256 or 1024. (default = 64) If set to 1, HW PWM is around 64.5KHz@16.5MHz with Digispark */
+
 #if F_CPU >= 3000000L
+#if !defined(MS_TIMER_TICK_EVERY_X_CYCLES)
   #define MillisTimer_Prescale_Index  MillisTimer_(Prescale_Value_64)
   #define MillisTimer_Prescale_Value  (64)
   #define ToneTimer_Prescale_Index    ToneTimer_(Prescale_Value_64)
   #define ToneTimer_Prescale_Value    (64)
+#else
+  #define Prescaler_Value(Val)        PRESCALER_VALUE(Val)
+  #define PRESCALER_VALUE(Val)        Prescale_Value_##Val
+  #define MillisTimer_Prescale_Index  MillisTimer_(Prescaler_Value(MS_TIMER_TICK_EVERY_X_CYCLES))
+  #define MillisTimer_Prescale_Value  (MS_TIMER_TICK_EVERY_X_CYCLES)
+  #define ToneTimer_Prescale_Index    ToneTimer_(Prescaler_Value(MS_TIMER_TICK_EVERY_X_CYCLES))
+  #define ToneTimer_Prescale_Value    (MS_TIMER_TICK_EVERY_X_CYCLES)
+#endif
 #else
   #define MillisTimer_Prescale_Index  MillisTimer_(Prescale_Value_8)
   #define MillisTimer_Prescale_Value  (8)
@@ -140,7 +151,11 @@ unsigned long micros()
 
   SREG = oldSREG;
   
+#if (MillisTimer_Prescale_Value >= clockCyclesPerMicrosecond())
   return ((m << 8) + t) * (MillisTimer_Prescale_Value / clockCyclesPerMicrosecond());
+#else
+  return ((m << 8) + t) / (clockCyclesPerMicrosecond() / MillisTimer_Prescale_Value);
+#endif
 }
 
 void delay(unsigned long ms)
