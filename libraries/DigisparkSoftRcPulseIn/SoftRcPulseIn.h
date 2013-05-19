@@ -19,7 +19,7 @@
 #include "WProgram.h"
 #endif
 
-#include "../TinyPinChange/TinyPinChange.h"
+#include <TinyPinChange.h>
 
 #include <inttypes.h>
 
