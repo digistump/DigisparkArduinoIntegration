@@ -75,7 +75,7 @@ void DigiUSBDevice::begin() {
     uchar   i;
     i = 0;
     while(--i){             /* fake USB disconnect for > 250 ms */
-        _delay_ms(1);
+        _delay_ms(10);
     }
     usbDeviceConnect();
     
