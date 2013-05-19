@@ -42,10 +42,29 @@
  ATTENTION: l'utilisateur final doit egalement utiliser la methode de programmation asynchrone dans la fonction loop() (pas de fonctions bloquantes comme delay() ou pulseIn()).
  http://p.loussouarn.free.fr
 */
+/**********************************************/
+/*         RCSEQ LIBRARY CONFIGURATION        */
+/**********************************************/
+//#define RC_SEQ_WITH_SOFT_RC_PULSE_IN_SUPPORT /* Comment this line if you use <DigiUSB> library in your sketch */
+#define RC_SEQ_WITH_SHORT_ACTION_SUPPORT	/* This allows to put call to short action in sequence table */
 
-#include "../SoftRcPulseIn/SoftRcPulseIn.h"
-#include "../SoftRcPulseOut/SoftRcPulseOut.h"
-#include "../TinyPinChange/TinyPinChange.h"
+
+
+/**********************************************/
+/*      /!\   Do not touch below   /!\        */
+/**********************************************/
+#define RC_SEQ_WITH_STATIC_MEM_ALLOC_SUPPORT   /* Do NOT comment this line for DigiSpark */
+
+#ifdef RC_SEQ_WITH_SOFT_RC_PULSE_IN_SUPPORT
+#include <TinyPinChange.h>
+#include <SoftRcPulseIn.h>
+#else
+#warning RC_SEQ_WITH_SOFT_RC_PULSE_IN_SUPPORT disabled: no RC command possible!!!
+#endif
+#ifndef RC_SEQ_WITH_SHORT_ACTION_SUPPORT
+#warning RC_SEQ_WITH_SHORT_ACTION_SUPPORT disabled: no short action possible!!!
+#endif
+#include <SoftRcPulseOut.h>
 
 #if defined(ARDUINO) && ARDUINO >= 100
 #include "Arduino.h"
@@ -56,9 +75,15 @@
 #include <inttypes.h>
 #include <stdio.h>
 
+#ifdef RC_SEQ_WITH_SOFT_RC_PULSE_IN_SUPPORT
 #define SERVO_MAX_NB    10
 #define SEQUENCE_MAX_NB 8
 #define RC_CMD_MAX_NB   4
+#else
+#define SERVO_MAX_NB    3 /* 3 is the maximum for DigiSpark if DigiUSB is used in the skecth */
+#define SEQUENCE_MAX_NB 1 /* 1 is the maximum for DigiSpark if DigiUSB is used in the skecth */
+#define RC_CMD_MAX_NB   0
+#endif
 
 typedef struct {
   uint8_t      ServoIndex;
@@ -76,35 +101,46 @@ typedef struct {
 
 #define TABLE_ITEM_NBR(Tbl)  (sizeof(Tbl)/sizeof(Tbl[0]))
 
-/* Macro de sequencement d'un mouvement avec demarrge lent et arret lents à utiliser dans la table de structure "Sequence[]" */
-#define MOTION_WITH_SOFT_START_AND_STOP(ServoIndex,StartInDegrees,EndInDegrees,StartMvtOffsetMs,MvtDurationMs,PourCent)                                                                                                                                                                    \
-  {ServoIndex, StartInDegrees,                                               StartInDegrees+((EndInDegrees-StartInDegrees)*PourCent)/100L, StartMvtOffsetMs,                                                                           (MvtDurationMs*2L*PourCent)/100L,       NULL  }, \
-  {ServoIndex, StartInDegrees+((EndInDegrees-StartInDegrees)*PourCent)/100L, EndInDegrees-((EndInDegrees-StartInDegrees)*PourCent)/100L,   StartMvtOffsetMs+(MvtDurationMs*2L*PourCent)/100L,                                          (MvtDurationMs*(100L-4L*PourCent))/100L,NULL  }, \
-  {ServoIndex, EndInDegrees-((EndInDegrees-StartInDegrees)*PourCent)/100L,   EndInDegrees,                                                (StartMvtOffsetMs+(MvtDurationMs*2L*PourCent)/100L)+(MvtDurationMs*(100L-4L*PourCent))/100L, (MvtDurationMs*2L*PourCent)/100L,       NULL  },
+/* Macro to declare a motion WITH soft start and soft stop (to use in "Sequence[]" structure table) */
+#define MOTION_WITH_SOFT_START_AND_STOP(ServoIndex,StartInDegrees,EndInDegrees,StartMvtOffsetMs,MvtDurationMs,PourCent)                                                                                                                                                                              \
+  {(ServoIndex), (StartInDegrees),                                                (StartInDegrees+((EndInDegrees-StartInDegrees)*PourCent)/100L), (StartMvtOffsetMs),                                                                            ((MvtDurationMs*2L*PourCent)/100L),        NULL  }, \
+  {(ServoIndex), (StartInDegrees+((EndInDegrees-StartInDegrees)*PourCent)/100L), (EndInDegrees-((EndInDegrees-StartInDegrees)*PourCent)/100L),    (StartMvtOffsetMs+(MvtDurationMs*2L*PourCent)/100L),                                           ((MvtDurationMs*(100L-4L*PourCent))/100L), NULL  }, \
+  {(ServoIndex), (EndInDegrees-((EndInDegrees-StartInDegrees)*PourCent)/100L),   (EndInDegrees),                                                  ((StartMvtOffsetMs+(MvtDurationMs*2L*PourCent)/100L)+(MvtDurationMs*(100L-4L*PourCent))/100L), ((MvtDurationMs*2L*PourCent)/100L),        NULL  },
 
-#define SHORT_ACTION_TO_PERFORM(ShortAction,StartActionOffsetMs) {255, 0, 0, StartActionOffsetMs, 0L, (ShortAction)},
+/* Macro to declare a motion WITHOUT soft start and soft stop (to use in "Sequence[]" structure table) */
+#define MOTION_WITHOUT_SOFT_START_AND_STOP(ServoIndex,StartInDegrees,EndInDegrees,StartMvtOffsetMs,MvtDurationMs)      \
+  {ServoIndex, StartInDegrees, EndInDegrees, StartMvtOffsetMs, MvtDurationMs, NULL},
+
+/* Macro to declare a short action (to use in "Sequence[]" structure table) */
+#define SHORT_ACTION_TO_PERFORM(ShortAction, StartActionOffsetMs) {255, 0, 0, (StartActionOffsetMs), 0L, (ShortAction)},
 
 enum {RC_CMD_STICK=0, RC_CMD_KEYBOARD, RC_CMD_CUSTOM};
 
 #define RC_SEQUENCE(Sequence)			Sequence, TABLE_ITEM_NBR(Sequence)
 #define RC_CUSTOM_KEYBOARD(KeyMap)		KeyMap, TABLE_ITEM_NBR(KeyMap)
 
-#define CENTER_VALUE_US(CenterVal,Tol)  ((CenterVal)-(Tol)),((CenterVal)+(Tol))
+#define CENTER_VALUE_US(CenterVal,Tol)		((CenterVal)-(Tol)),((CenterVal)+(Tol))
 
 void    RcSeq_Init(void);
 uint8_t RcSeq_LibVersion(void);
 uint8_t RcSeq_LibRevision(void);
 char   *RcSeq_LibTextVersionRevision(void);
-void    RcSeq_DeclareSignal(uint8_t Idx, uint8_t DigitalPin);
 void    RcSeq_DeclareServo(uint8_t Idx, uint8_t DigitalPin);
+#ifdef RC_SEQ_WITH_SOFT_RC_PULSE_IN_SUPPORT
+void    RcSeq_DeclareSignal(uint8_t Idx, uint8_t DigitalPin);
 void    RcSeq_DeclareKeyboardOrStickOrCustom(uint8_t ChIdx, uint8_t Type, uint16_t PulseMinUs, uint16_t PulseMaxUs, KeyMap_t *KeyMapTbl, uint8_t PosNb);
 void    RcSeq_DeclareCustomKeyboard(uint8_t ChIdx, KeyMap_t *KeyMapTbl, uint8_t PosNb);
 #define RcSeq_DeclareStick(ChIdx, PulseMinUs, PulseMaxUs, PosNb)      RcSeq_DeclareKeyboardOrStickOrCustom(ChIdx, RC_CMD_STICK, PulseMinUs, PulseMaxUs, NULL, PosNb)
 #define RcSeq_DeclareKeyboard(ChIdx, PulseMinUs, PulseMaxUs, KeyNb)   RcSeq_DeclareKeyboardOrStickOrCustom(ChIdx, RC_CMD_KEYBOARD, PulseMinUs, PulseMaxUs, NULL, KeyNb)
-void    RcSeq_DeclareCommandAndSequence(uint8_t CmdIdx,uint8_t TypeCmd,SequenceSt_t *Table, uint8_t SequenceLength);
+#ifdef RC_SEQ_WITH_SHORT_ACTION_SUPPORT
 void    RcSeq_DeclareCommandAndShortAction(uint8_t CmdIdx,uint8_t TypeCmd,void(*ShortAction)(void));
+#endif
+#endif
+void    RcSeq_DeclareCommandAndSequence(uint8_t CmdIdx,uint8_t TypeCmd,SequenceSt_t *Table, uint8_t SequenceLength);
 uint8_t RcSeq_LaunchSequence(SequenceSt_t *Table);
-uint8_t RcSeq_LaunchShortAction(void(*ShortAction)(void));
+#ifdef RC_SEQ_WITH_SHORT_ACTION_SUPPORT
+#define RcSeq_LaunchShortAction(ShortAction)			if(ShortAction) ShortAction()
+#endif
 void    RcSeq_Refresh(void);
 
 /*******************************************************/
@@ -113,18 +149,23 @@ void    RcSeq_Refresh(void);
 
 /* Macro en Francais de declaration mouvement   English native Macro to declare a motion */
 #define MVT_AVEC_DEBUT_ET_FIN_MVT_LENTS			MOTION_WITH_SOFT_START_AND_STOP
+#define MVT_SANS_DEBUT_ET_FIN_MVT_LENTS			MOTION_WITHOUT_SOFT_START_AND_STOP
 #define ACTION_COURTE_A_EFFECTUER				SHORT_ACTION_TO_PERFORM
-#define RC_CLAVIER_MAISON						RC_CUSTOM_KEYBOARD
-#define VALEUR_CENTRALE_US						CENTER_VALUE_US
+#ifdef RC_SEQ_WITH_SOFT_RC_PULSE_IN_SUPPORT
+#define RC_CLAVIER_MAISON					RC_CUSTOM_KEYBOARD
+#define VALEUR_CENTRALE_US					CENTER_VALUE_US
+#endif
 
 /*      Methodes en Francais                    English native methods */
-#define RcSeq_DeclareManche						RcSeq_DeclareStick
+#ifdef RC_SEQ_WITH_SOFT_RC_PULSE_IN_SUPPORT
+#define RcSeq_DeclareManche					RcSeq_DeclareStick
 #define RcSeq_DeclareClavier					RcSeq_DeclareKeyboard
 #define RcSeq_DeclareClavierMaison				RcSeq_DeclareCustomKeyboard
+#define RcSeq_DeclareCommandeEtActionCourte			RcSeq_DeclareCommandAndShortAction
+#endif
 #define RcSeq_DeclareCommandeEtSequence			RcSeq_DeclareCommandAndSequence
-#define RcSeq_DeclareCommandeEtActionCourte		RcSeq_DeclareCommandAndShortAction
-#define RcSeq_LanceSequence						RcSeq_LaunchSequence
-#define RcSeq_LanceActionCourte					RcSeq_LaunchShortAction
-#define RcSeq_Rafraichit						RcSeq_Refresh
+#define RcSeq_LanceSequence					RcSeq_LaunchSequence
+#define RcSeq_LanceActionCourte				RcSeq_LaunchShortAction
+#define RcSeq_Rafraichit					RcSeq_Refresh
 
 #endif

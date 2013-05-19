@@ -3,7 +3,9 @@
 the Pin Change Interrupt Vector.
 <SoftwareSerial> monopolizes the Pin Change Interrupt Vector and don't allow sharing.
 With <SoftSerial>, it's possible. Don't forget to #include <TinyPinChange> in your sketch!
-RC Navy (2012): http://p.loussouarn.free.fr
+Additionally, for small devices such as ATtiny85 (Digispark), it's possible to declare the same pin for TX and RX.
+Data direction is set by using the new txMode() and rxMode methods.
+RC Navy (2012-2013): http://p.loussouarn.free.fr
 
 SoftwareSerial.cpp (formerly NewSoftSerial.cpp) - 
 Multi-instance software serial library for Arduino/Wiring
@@ -367,8 +369,9 @@ SoftSerial::SoftSerial(uint8_t receivePin, uint8_t transmitPin, bool inverse_log
   _buffer_overflow(false),
   _inverse_logic(inverse_logic)
 {
-  setTX(transmitPin);
+//  setTX(transmitPin);
   setRX(receivePin);
+  setTX(transmitPin);
   TinyPinChange_RegisterIsr(receivePin, SoftSerial::handle_interrupt);
 }
 
@@ -382,9 +385,13 @@ SoftSerial::~SoftSerial()
 
 void SoftSerial::setTX(uint8_t tx)
 {
-  pinMode(tx, OUTPUT);
-  digitalWrite(tx, HIGH);
   _transmitBitMask = digitalPinToBitMask(tx);
+  if(_transmitBitMask!=_receiveBitMask)
+  {
+    pinMode(tx, OUTPUT);
+    digitalWrite(tx, HIGH);
+  }
+//  _transmitBitMask = digitalPinToBitMask(tx);
   uint8_t port = digitalPinToPort(tx);
   _transmitPortRegister = portOutputRegister(port);
 }
@@ -543,4 +550,24 @@ int SoftSerial::peek()
 
   // Read from "head"
   return _receive_buffer[_receive_buffer_head];
+}
+
+/* RC Navy: hack to use SofSerial as single wire bidirectional serial port */
+void SoftSerial::txMode()
+{
+  /* Disable Pin Change Interrupt capabilities for this pin */
+  TinyPinChange_DisablePin(_receivePin);
+  /* Switch Pin to Output */
+  pinMode(_receivePin, OUTPUT);
+  digitalWrite(_receivePin, _inverse_logic?LOW:HIGH);
+}
+
+void SoftSerial::rxMode()
+{
+  /* Enable Pin Change Interrupt capabilities for this pin */
+  TinyPinChange_EnablePin(_receivePin);
+  /* Switch Pin to Input */
+  pinMode(_receivePin, INPUT);
+  if (!_inverse_logic)
+    digitalWrite(_receivePin, HIGH);  // pullup for normal logic!
 }

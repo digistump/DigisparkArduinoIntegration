@@ -47,6 +47,7 @@
 void	TinyPinChange_Init(void);
 int8_t  TinyPinChange_RegisterIsr(uint8_t Pin, void(*Isr)(void));
 void	TinyPinChange_EnablePin(uint8_t Pin);
+void	TinyPinChange_DisablePin(uint8_t Pin);
 uint8_t TinyPinChange_GetPinEvent(uint8_t VirtualPortIdx);
 uint8_t TinyPinChange_GetPinCurSt(uint8_t VirtualPortIdx);
 #define TinyPinChange_PinToMsk(Pin) _BV(digitalPinToPCMSKbit(Pin))
@@ -56,10 +57,11 @@ uint8_t TinyPinChange_GetPinCurSt(uint8_t VirtualPortIdx);
 /*******************************************************/
 
 /*      Methodes en Francais                            English native methods */
-#define TinyPinChange_EnregistreFonctionInterruption	TinyPinChange_RegisterIsr
-#define TinyPinChange_ActiveBroche						TinyPinChange_EnablePin
-#define TinyPinChange_RetourneEvenemenPort				TinyPinChange_GetPinEvent
+#define TinyPinChange_EnregistreFonctionInterruption		TinyPinChange_RegisterIsr
+#define TinyPinChange_ActiveBroche				TinyPinChange_EnablePin
+#define TinyPinChange_DesactiveBroche				TinyPinChange_DisablePin
+#define TinyPinChange_RetourneEvenemenPort			TinyPinChange_GetPinEvent
 #define TinyPinChange_RetourneEtatCourantPort			TinyPinChange_GetPinCurSt
-#define TinyPinChange_MasqueDeBroche				 	TinyPinChange_PinToMsk
+#define TinyPinChange_MasqueDeBroche				TinyPinChange_PinToMsk
 
 #endif

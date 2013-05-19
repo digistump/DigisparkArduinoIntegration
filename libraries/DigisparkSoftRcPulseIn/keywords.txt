@@ -1,29 +1,26 @@
 #######################################
-# Syntax Coloring Map for SoftSerial
+# Syntax Coloring Map SoftRcPulseIn
 #######################################
 
 #######################################
 # Datatypes (KEYWORD1)
 #######################################
 
-SoftSerial	KEYWORD1
+SoftRcPulseIn	KEYWORD1
 
 #######################################
 # Methods and Functions (KEYWORD2)
 #######################################
-
-begin	KEYWORD2
-end	KEYWORD2
-read	KEYWORD2
+LibVersion	KEYWORD2
+LibRevision	KEYWORD2
+LibTextVersionRevision	KEYWORD2
+attach	KEYWORD2
+attache	KEYWORD2
 available	KEYWORD2
-isListening	KEYWORD2
-overflow	KEYWORD2
-flush	KEYWORD2
-listen	KEYWORD2
-txMode	KEYWORD2
-rxMode	KEYWORD2
+disponible	KEYWORD2
+width_us	KEYWORD2
+largeur_us	KEYWORD2
 
 #######################################
 # Constants (LITERAL1)
 #######################################
-
