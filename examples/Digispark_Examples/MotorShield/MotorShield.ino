@@ -11,10 +11,10 @@ int MotorBSpeed = 1;
 // the setup routine runs once when you press reset:
 void setup() {                
   // initialize the outputs.
-  pinMode(led, OUTPUT);   
-  pinMode(led, OUTPUT);
-  pinMode(led, OUTPUT);
-  pinMode(led, OUTPUT);  
+  pinMode(MotorADir, OUTPUT);   
+  pinMode(MotorASpeed, OUTPUT);
+  pinMode(MotorBDir, OUTPUT);
+  pinMode(MotorBSpeed, OUTPUT);  
 }
 
 // the loop routine runs over and over again forever:
