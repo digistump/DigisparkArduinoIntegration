@@ -145,25 +145,18 @@ void clearMove() {
 class DigiMouseDevice {
  public:
 	DigiMouseDevice () {
-		// this timer stuff doesn't even make sense - it seems like someone got some code for Timer1
-		// and haphazardly changed the 1's in the register names to 0's, but the two timers don't work
-		// the same way, so this code doesn't do what it says at all. Is it even useful to have?
-		/* configure timer 0 for a rate of 16M5/(1024 * 256) = 62.94 Hz (~16ms) */
-		//TCCR0A = 5;			 /* timer 0 prescaler: 1024 */
-		
-		
-		
-		//TIMSK &= !(1<TOIE0);//interrupt off
-		cli();
-		usbDeviceDisconnect();
-		_delay_ms(250);
-		usbDeviceConnect();
-		
+
 		rt_usbHidReportDescriptor = mouse_usbHidReportDescriptor;
 		rt_usbHidReportDescriptorSize = sizeof(mouse_usbHidReportDescriptor);
 		rt_usbDeviceDescriptor = usbDescrDevice;
 		rt_usbDeviceDescriptorSize = sizeof(usbDescrDevice);
-		
+	}
+
+	void init() {
+		cli();
+		usbDeviceDisconnect();
+		_delay_ms(200);
+		usbDeviceConnect();	
 		
 		usbInit();
 		

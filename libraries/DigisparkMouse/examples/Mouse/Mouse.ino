@@ -5,7 +5,7 @@
 #include "DigiMouse.h"
 
 void setup() {
-  // Do nothing? It seems as if the USB hardware is ready to go on reset
+  DigiMouse.init(); // call init to enumerate
 }
 
 void loop() {
